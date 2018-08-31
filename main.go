@@ -8,9 +8,13 @@ import (
 
 func main() {
 	ix := idex.New()
-	ticker, err := ix.Ticker("ETH_SAN")
+
+	v, err := ix.Volume24()
 	if err != nil {
-		log.Printf("%+v\n", err)
+		log.Println(err)
+	} else {
+		log.Printf("%+v\n", v)
+
 	}
-	log.Printf("%+v\n", ticker)
+
 }

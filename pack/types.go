@@ -1,6 +1,8 @@
 package idex
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // Ticker data
 type Ticker struct {
@@ -21,6 +23,19 @@ type Order struct {
 	Total     string  `json:"total"`
 	OrderHash string  `json:"orderHash"`
 	Params    *Params `json:"params"`
+}
+
+// OpenOrder in orderbook
+type OpenOrder struct {
+	Timestamp   int     `json:"timestamp"`
+	OrderHash   string  `json:"orderHash"`
+	Market      string  `json:"market"`
+	Type        string  `json:"type"`
+	OrderNumber int     `json:"orderNumber"`
+	Price       string  `json:"price"`
+	Amount      string  `json:"amount"`
+	Total       string  `json:"total"`
+	Params      *Params `json:"params"`
 }
 
 // Params of an Order
@@ -44,21 +59,68 @@ type OrderBook struct {
 	Asks []Order `json:"asks"`
 }
 
+// Trade holds details about a trade
+type Trade struct {
+	Date            string `json:"date"`
+	Amount          string `json:"amount"`
+	Type            string `json:"type"`
+	Total           string `json:"total"`
+	Price           string `json:"price"`
+	OrderHash       string `json:"orderHash"`
+	UUID            string `json:"uuid"`
+	BuyerFee        string `json:"buyerFee"`
+	SellerFee       string `json:"sellerFee"`
+	GasFee          string `json:"gasFee"`
+	Timestamp       int    `json:"timestamp"`
+	Maker           string `json:"maker"`
+	Taker           string `json:"taker"`
+	TransactionHash string `json:"transactionHash"`
+	UsdValue        string `json:"usdValue"`
+}
+
+// Currency holds details about supported currencies
+type Currency struct {
+	Name     string `json:"name"`
+	Decimals int    `json:"decimals"`
+	Address  string `json:"address"`
+}
+
+// Balance of token available and in open orders
+type Balance struct {
+	Available string `json:"available"`
+	OnOrders  string `json:"onOrders"`
+}
+
+// Deposit holds information about a user's deposits
+type Deposit struct {
+	DepositNumber   int    `json:"depositNumber"`
+	Currency        string `json:"currency"`
+	Amount          string `json:"amount"`
+	Timestamp       int    `json:"timestamp"`
+	TransactionHash string `json:"transactionHash"`
+}
+
+// Withdrawal holds information about a user's withdrawals
+type Withdrawal struct {
+	WithdrawalNumber int    `json:"depositNumber"`
+	Currency         string `json:"currency"`
+	Amount           string `json:"amount"`
+	Timestamp        int    `json:"timestamp"`
+	TransactionHash  string `json:"transactionHash"`
+	Status           string `json:"status"`
+}
+
 // Volume maps markets to ETH and TOKEN amounts, with total eth volume
 type Volume struct {
 	Markets  map[string]map[string]string
-	TotalETH string `json:"totalETH"`
+	TotalETH string
 }
 
 // UnmarshalJSON custom for Volume
 func (v *Volume) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &v.Markets); err != nil {
-		switch e := err.(type) {
-		case *json.UnmarshalTypeError:
-			if e.Value != "string" {
-				return err
-			}
-		default:
+		// expecting error on totalETH field having a string value
+		if !UnmarshalErrorOnType(err, "string") {
 			return err
 		}
 	}
@@ -70,14 +132,7 @@ func (v *Volume) UnmarshalJSON(b []byte) error {
 	t := total{}
 
 	if err := json.Unmarshal(b, &t); err != nil {
-		switch e := err.(type) {
-		case *json.UnmarshalTypeError:
-			if e.Value != "map[string]map[string]string" {
-				return err
-			}
-		default:
-			return err
-		}
+		return err
 	}
 	v.TotalETH = t.TotalETH
 
