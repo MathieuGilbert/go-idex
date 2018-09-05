@@ -3,11 +3,18 @@ package idex
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // Idex service
 type Idex struct {
-	Client *Client
+	API Poster
+}
+
+// Poster does a call to an endpoint.
+// It's here so tests can skip the HTTP call.
+type Poster interface {
+	Post(endpoint, payload string) ([]byte, error)
 }
 
 const (
@@ -15,8 +22,8 @@ const (
 )
 
 // New instance of an Idex
-func New() *Idex {
-	return &Idex{Client: NewClient(url)}
+func New(a Poster) *Idex {
+	return &Idex{API: a}
 }
 
 // Ticker for the market
@@ -28,12 +35,12 @@ func (i *Idex) Ticker(market string) (t *Ticker, err error) {
 
 	payload := fmt.Sprintf(`{"market":"%s"}`, market)
 
-	body, err := i.Client.do("returnTicker", payload)
+	body, err := i.API.Post("returnTicker", payload)
 	if err != nil {
 		return
 	}
 
-	if string(body) == "{}" {
+	if strings.TrimSpace(string(body)) == "{}" {
 		err = fmt.Errorf("market %v not found", market)
 		return
 	}
@@ -44,7 +51,7 @@ func (i *Idex) Ticker(market string) (t *Ticker, err error) {
 
 // Tickers for all markets
 func (i *Idex) Tickers() (t map[string]*Ticker, err error) {
-	body, err := i.Client.do("returnTicker", "")
+	body, err := i.API.Post("returnTicker", "")
 	if err != nil {
 		return
 	}
@@ -55,7 +62,7 @@ func (i *Idex) Tickers() (t map[string]*Ticker, err error) {
 
 // Volume24 returns 24-hour volume for all markets
 func (i *Idex) Volume24() (v *Volume, err error) {
-	body, err := i.Client.do("return24Volume", "")
+	body, err := i.API.Post("return24Volume", "")
 	if err != nil {
 		return
 	}
@@ -74,7 +81,7 @@ func (i *Idex) OrderBook(market string) (ob *OrderBook, err error) {
 
 	payload := fmt.Sprintf(`{"market":"%s"}`, market)
 
-	body, err := i.Client.do("returnOrderBook", payload)
+	body, err := i.API.Post("returnOrderBook", payload)
 	if err != nil {
 		return
 	}
@@ -92,7 +99,7 @@ func (i *Idex) OpenOrders(market, address string) (os []*OpenOrder, err error) {
 
 	payload := fmt.Sprintf(`{"market":"%s", "address":"%s"}`, market, address)
 
-	body, err := i.Client.do("returnOpenOrders", payload)
+	body, err := i.API.Post("returnOpenOrders", payload)
 	if err != nil {
 		return
 	}
@@ -116,7 +123,7 @@ func (i *Idex) TradeHistoryMarket(market, address string, start, end int) (ts []
 		payload = fmt.Sprintf(`{"market":"%s", "address":"%s", "start":%d, "end":%d}`, market, address, start, end)
 	}
 
-	body, err := i.Client.do("returnTradeHistory", payload)
+	body, err := i.API.Post("returnTradeHistory", payload)
 	if err != nil {
 		return
 	}
@@ -135,7 +142,7 @@ func (i *Idex) TradeHistoryUser(address string, start, end int) (ts map[string][
 
 	payload := fmt.Sprintf(`{"address":"%s", "start":%d, "end":%d}`, address, start, end)
 
-	body, err := i.Client.do("returnTradeHistory", payload)
+	body, err := i.API.Post("returnTradeHistory", payload)
 	if err != nil {
 		return
 	}
@@ -146,7 +153,7 @@ func (i *Idex) TradeHistoryUser(address string, start, end int) (ts map[string][
 
 // Currencies returns all supported currencies
 func (i *Idex) Currencies() (cs map[string]*Currency, err error) {
-	body, err := i.Client.do("returnCurrencies", "")
+	body, err := i.API.Post("returnCurrencies", "")
 	if err != nil {
 		return
 	}
@@ -164,7 +171,7 @@ func (i *Idex) Balances(address string) (bs map[string]string, err error) {
 
 	payload := fmt.Sprintf(`{"address":"%s"}`, address)
 
-	body, err := i.Client.do("returnBalances", payload)
+	body, err := i.API.Post("returnBalances", payload)
 	if err != nil {
 		return
 	}
@@ -182,7 +189,7 @@ func (i *Idex) CompleteBalances(address string) (bs map[string]*Balance, err err
 
 	payload := fmt.Sprintf(`{"address":"%s"}`, address)
 
-	body, err := i.Client.do("returnCompleteBalances", payload)
+	body, err := i.API.Post("returnCompleteBalances", payload)
 	if err != nil {
 		return
 	}
@@ -200,7 +207,7 @@ func (i *Idex) DepositsWithdrawals(address string, start, end int) (ds []*Deposi
 
 	payload := fmt.Sprintf(`{"address":"%s", "start":%d, "end":%d}`, address, start, end)
 
-	body, err := i.Client.do("returnDepositsWithdrawals", payload)
+	body, err := i.API.Post("returnDepositsWithdrawals", payload)
 	if err != nil {
 		return
 	}
@@ -229,7 +236,7 @@ func (i *Idex) OrderTrades(hash string) (ts []*Trade, err error) {
 
 	payload := fmt.Sprintf(`{"orderHash":"%s"}`, hash)
 
-	body, err := i.Client.do("returnOrderTrades", payload)
+	body, err := i.API.Post("returnOrderTrades", payload)
 	if err != nil {
 		return
 	}
@@ -247,7 +254,7 @@ func (i *Idex) NextNonce(address string) (nonce int, err error) {
 
 	payload := fmt.Sprintf(`{"address":"%s"}`, address)
 
-	body, err := i.Client.do("returnNextNonce", payload)
+	body, err := i.API.Post("returnNextNonce", payload)
 	if err != nil {
 		return
 	}
@@ -267,7 +274,7 @@ func (i *Idex) NextNonce(address string) (nonce int, err error) {
 
 // ContractAddress returns the IDEX contract address
 func (i *Idex) ContractAddress() (address string, err error) {
-	body, err := i.Client.do("returnContractAddress", "")
+	body, err := i.API.Post("returnContractAddress", "")
 	if err != nil {
 		return
 	}

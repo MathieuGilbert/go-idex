@@ -5,3 +5,11 @@
   - trade
   - cancel
   - withdraw
+
+#### Websockets
+
+  - handshake
+  - notifyTradesInserted
+  - notifyOrderInserted
+  - pushCancel?
+  - pushCancels?

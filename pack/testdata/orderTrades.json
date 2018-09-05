@@ -1,0 +1,21 @@
+[
+    {
+        "type": "buy",
+        "date": "2018-07-09 16:41:24",
+        "amount": "74.503174603174603704",
+        "total": "0.150496412698412699",
+        "uuid": "eadc9da0-8396-11e8-969d-6f1b9b74c00a",
+        "timestamp": 1531154484,
+        "price": "0.00202",
+        "taker": "0xc571ef2addaa8d553336fe04dfd2320a8e42e431",
+        "maker": "0xa4e451a0e8fcb8a1c29bbe3c96b7e347a674e616",
+        "orderHash": "0xfb048cab1b72e002b351962927d8f6b3d538f344b71615220d9f8eebde8f735f",
+        "transactionHash": "0xaac910ce509b694fef78fd68f5b9651f1aebf8f0959fa04f472ee415185beeaa",
+        "tokenBuy": "0x0000000000000000000000000000000000000000",
+        "buyerFee": "0.149006349206349207",
+        "gasFee": "2.608910891089108918",
+        "sellerFee": "0.000150496412698413",
+        "tokenSell": "0x7c5a0ce9267ed19b22f8cae653f198e3e8daf098",
+        "usdValue": "105.3474888888888893"
+    }
+]

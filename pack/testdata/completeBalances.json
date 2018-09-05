@@ -1,0 +1,18 @@
+{
+    "ETH": {
+        "available": "0.987654321000000",
+        "onOrders": "12.777"
+    },
+    "BPT": {
+        "available": "0",
+        "onOrders": "8984"
+    },
+    "CFI": {
+        "available": "0.000000000000000001",
+        "onOrders": "0"
+    },
+    "NPXS": {
+        "available": "0.000000000000055555",
+        "onOrders": "0"
+    }
+}

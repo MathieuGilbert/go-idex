@@ -1,69 +1,67 @@
 package idex
 
 import (
+	"io/ioutil"
 	"testing"
 )
 
-const (
-	skip   = true
-	market = "ETH_SAN"
-	user   = "0xa4e451a0e8fcb8a1c29bbe3c96b7e347a674e616"
-)
+// ClientMock satisfies the Doer interface, including name of fixture file.
+type APIMock struct {
+	Fixture string
+	*API
+}
+
+func (a APIMock) Post(endpoint, payload string) ([]byte, error) {
+	if a.Fixture == "" {
+		return nil, nil
+	}
+
+	b, err := ioutil.ReadFile("testdata/" + a.Fixture)
+	if err != nil {
+		panic(err)
+	}
+	return b, nil
+}
 
 func TestNew(t *testing.T) {
-	idex := New()
-
-	if idex.Client.URL != url {
-		t.Error("should set the URL")
+	idex := New(APIMock{Fixture: ""})
+	if idex == nil {
+		t.Error("idex should be created")
 	}
 }
 
 func TestTicker(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "ticker.json"})
 
-	idex := New()
-
-	tk, err := idex.Ticker(market)
+	tk, err := idex.Ticker("ETH_AUC")
 	if err != nil {
 		t.Errorf("should not be an error: %v\n", err)
 	}
 	if tk == nil {
 		t.Error("ticker should not be nil")
 	}
+	if tk.Last != "0.00555" {
+		t.Errorf("last should be 0.00555, was: %v", tk.Last)
+	}
 }
 
 func TestTickerBadMarket(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "empty.json"})
 
-	idex := New()
-
-	tk, err := idex.Ticker("INVALID")
+	_, err := idex.Ticker("INVALID")
 	if err == nil {
 		t.Error("should be an error")
 	}
-	if tk != nil {
-		t.Errorf("ticker should be nil: %v", tk)
-	}
 
-	tk, err = idex.Ticker("")
+	_, err = idex.Ticker("")
 	if err == nil {
 		t.Error("should be an error")
 	}
-	if tk != nil {
-		t.Errorf("ticker should be nil: %v", tk)
-	}
+
 }
 
 func TestTickers(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
-
-	idex := New()
+	idex := New(APIMock{Fixture: "tickers.json"})
 
 	tks, err := idex.Tickers()
 	if err != nil {
@@ -72,84 +70,98 @@ func TestTickers(t *testing.T) {
 	if tks == nil {
 		t.Error("tickers should not be nil")
 	}
-	if len(tks) == 0 {
-		t.Error("there should be at least one ticker")
+	if was, exp := len(tks), 3; was != exp {
+		t.Errorf("there should be %v tickers, was: %v", exp, was)
 	}
-	if tks[market] == nil {
-		t.Errorf("%v market should exist", market)
+	if tks["ETH_AUC"] == nil {
+		t.Error("ETH_SAN market should exist")
+	}
+	if was, exp := tks["ETH_AUC"].Last, "0.000207186721315823"; was != exp {
+		t.Errorf("last should %v, was: %v", exp, was)
 	}
 }
 
 func TestVolume24(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
-
-	idex := New()
+	idex := New(APIMock{Fixture: "volume24.json"})
 
 	vol, err := idex.Volume24()
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(vol.Markets) == 0 {
-		t.Error("should be at least one volume")
+	if was, exp := len(vol.Markets), 3; was != exp {
+		t.Errorf("there should be %v volumes, was: %v", exp, was)
 	}
-	if vol.Markets[market] == nil {
-		t.Errorf("%v market should exist", market)
+	if vol.Markets["ETH_AUC"] == nil {
+		t.Error("market should exist")
 	}
-	if vol.TotalETH == "" {
-		t.Error("TotalETH should be set")
+	if was, exp := vol.Markets["ETH_AUC"]["AUC"], "209849.917899637864109753"; was != exp {
+		t.Errorf("volume should be %v, was: %v", exp, was)
+	}
+	if vol.TotalETH != "14148.11678323491238745" {
+		t.Errorf("TotalETH should be 12.234, was: %v", vol.TotalETH)
 	}
 }
 
 func TestReturnOrderBook(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "orderBook.json"})
 
-	idex := New()
-
-	ob, err := idex.OrderBook(market)
+	ob, err := idex.OrderBook("ETH_SAN")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
 	if ob.Asks == nil || len(ob.Asks) == 0 {
 		t.Error("missing asks")
 	}
+	if was, exp := len(ob.Asks), 5; was != exp {
+		t.Errorf("there should be %v asks, was: %v", exp, was)
+	}
 	if ob.Bids == nil || len(ob.Bids) == 0 {
 		t.Error("missing bids")
+	}
+	if was, exp := len(ob.Bids), 6; was != exp {
+		t.Errorf("there should be %v bids, was: %v", exp, was)
+	}
+	if was, exp := ob.Asks[0].Price, "0.00342003"; was != exp {
+		t.Errorf("first ask price should be %v, was: %v", exp, was)
+	}
+	if was, exp := ob.Bids[0].Amount, "2222"; was != exp {
+		t.Errorf("first bid amount should be %v, was: %v", exp, was)
 	}
 }
 
 func TestOpenOrdersMarket(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "openOrdersMarket.json"})
 
-	idex := New()
-
-	os, err := idex.OpenOrders(market, "")
+	os, err := idex.OpenOrders("ETH_SAN", "")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(os) == 0 {
-		t.Error("there should be at least one open order")
+	if was, exp := len(os), 12; was != exp {
+		t.Errorf("there should be %v orders, was: %v", exp, was)
+	}
+	if was, exp := os[0].Timestamp, 1518721278; was != exp {
+		t.Errorf("first open order timestamp should be %v, was: %v", exp, was)
+	}
+	if was, exp := os[0].Params.AmountBuy, "1999999999999999999"; was != exp {
+		t.Errorf("first open order amount buy should be %v, was: %v", exp, was)
 	}
 }
 
-func TestOpenOrdersAddress(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+func TestOpenOrdersUser(t *testing.T) {
+	idex := New(APIMock{Fixture: "openOrdersUser.json"})
 
-	idex := New()
-
-	os, err := idex.OpenOrders("", user)
+	os, err := idex.OpenOrders("", "0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(os) == 0 {
-		t.Error("there should be at least one open order")
+	if was, exp := len(os), 10; was != exp {
+		t.Errorf("there should be %v orders, was: %v", exp, was)
+	}
+	if was, exp := os[0].Market, "ETH_PARETO"; was != exp {
+		t.Errorf("first open order market should be %v, was: %v", exp, was)
+	}
+	if was, exp := os[0].Params.AmountSell, "20146610957659998010000"; was != exp {
+		t.Errorf("first open order market should be %v, was: %v", exp, was)
 	}
 
 	_, err = idex.OpenOrders("", "")
@@ -159,13 +171,23 @@ func TestOpenOrdersAddress(t *testing.T) {
 }
 
 func TestTradeHistoryMarket(t *testing.T) {
-	if skip {
-		t.Skip()
+	idex := New(APIMock{Fixture: "tradeHistoryMarket.json"})
+
+	ts, err := idex.TradeHistoryMarket("ETH_SAN", "", 0, 0)
+	if err != nil {
+		t.Errorf("should not be an error: %v", err)
+	}
+	if was, exp := len(ts), 22; was != exp {
+		t.Errorf("there should be %v trades, was: %v", exp, was)
+	}
+	if was, exp := ts[0].Total, "0.150496412698412699"; was != exp {
+		t.Errorf("first trade history total should be %v, was: %v", exp, was)
+	}
+	if was, exp := ts[1].Total, "0.5418851999999997"; was != exp {
+		t.Errorf("second trade history total should be %v, was: %v", exp, was)
 	}
 
-	idex := New()
-
-	ts, err := idex.TradeHistoryMarket(market, "", 0, 0)
+	ts, err = idex.TradeHistoryMarket("ETH_SAN", "0x1234567890", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -173,16 +195,7 @@ func TestTradeHistoryMarket(t *testing.T) {
 		t.Error("there should be at least one trade")
 	}
 
-	ts, err = idex.TradeHistoryMarket(market, user, 0, 0)
-	if err != nil {
-		// dependent on user's trade history
-		t.Errorf("should not be an error: %v", err)
-	}
-	if len(ts) == 0 {
-		t.Error("there should be at least one trade")
-	}
-
-	ts, err = idex.TradeHistoryMarket(market, "", 1531000000, 1532000000)
+	ts, err = idex.TradeHistoryMarket("ETH_SAN", "", 1531000000, 1532000000)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -197,19 +210,23 @@ func TestTradeHistoryMarket(t *testing.T) {
 }
 
 func TestTradeHistoryUser(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "tradeHistoryUser.json"})
 
-	idex := New()
-
-	ts, err := idex.TradeHistoryUser(user, 0, 0)
+	ts, err := idex.TradeHistoryUser("0x1234567890", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(ts) == 0 {
-		// dependent on user's trade history
-		t.Error("there should be at least one trade")
+	if was, exp := len(ts), 4; was != exp {
+		t.Errorf("there should be %v markets traded, was: %v", exp, was)
+	}
+	if was, exp := len(ts["ETH_SAN"]), 2; was != exp {
+		t.Errorf("there should be %v trades on ETH_SAN, was: %v", exp, was)
+	}
+	if was, exp := ts["ETH_SAN"][0].Total, "0.150496412698412699"; was != exp {
+		t.Errorf("first trade history total should be %v, was: %v", exp, was)
+	}
+	if was, exp := ts["ETH_SAN"][0].USDValue, "105.3474888888888893"; was != exp {
+		t.Errorf("first trade history usdValue should be %v, was: %v", exp, was)
 	}
 
 	_, err = idex.TradeHistoryUser("", 0, 0)
@@ -219,91 +236,89 @@ func TestTradeHistoryUser(t *testing.T) {
 }
 
 func TestCurrencies(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
-
-	idex := New()
+	idex := New(APIMock{Fixture: "currencies.json"})
 
 	cs, err := idex.Currencies()
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(cs) == 0 {
-		t.Error("there should be at least one currency")
+	if was, exp := len(cs), 3; was != exp {
+		t.Errorf("there should be %v currencies, was: %v", exp, was)
 	}
-	if cs["ETH"] == nil {
-		t.Error("ETH should be included")
+	if cs["1ST"] == nil {
+		t.Error("1ST should be included")
+	}
+	if was, exp := cs["1ST"].Name, "FirstBlood"; was != exp {
+		t.Errorf("1ST currency name should be %v, was %v", exp, was)
 	}
 }
 
 func TestBalances(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "balances.json"})
 
-	idex := New()
-
-	bs, err := idex.Balances(user)
+	bs, err := idex.Balances("0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
 	if len(bs) == 0 {
 		t.Error("there should be at least one balance")
 	}
-	if bs["DNA"] == "" {
-		// DNA chosen by looking up user's balance
-		t.Errorf("DNA should be included: %v", bs)
+	if was, exp := len(bs), 4; was != exp {
+		t.Errorf("there should be %v deposits, was: %v", exp, was)
+	}
+	if was, exp := bs["NPXS"], "0.000000000000055555"; was != exp {
+		t.Errorf("NPXS balance should be %v, was: %v", exp, was)
+	}
+
+	_, err = idex.Balances("")
+	if err == nil {
+		t.Error("should be an error")
 	}
 }
 
 func TestCompleteBalances(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "completeBalances.json"})
 
-	idex := New()
-
-	bs, err := idex.CompleteBalances(user)
+	bs, err := idex.CompleteBalances("0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(bs) == 0 {
-		t.Error("there should be at least one balance")
+	if was, exp := len(bs), 4; was != exp {
+		t.Errorf("there should be %v balances, was: %v", exp, was)
 	}
-	if bs["DNA"] == nil {
-		// DNA chosen by looking up user's balance
-		t.Errorf("DNA should be included: %v", bs)
+	if bs["ETH"] == nil {
+		t.Error("ETH should be included")
+	}
+	if was, exp := bs["ETH"].Available, "0.987654321000000"; was != exp {
+		t.Errorf("ETH available balance should be %v, was: %v", exp, was)
+	}
+	if was, exp := bs["ETH"].OnOrders, "12.777"; was != exp {
+		t.Errorf("ETH on order balance should be %v, was: %v", exp, was)
+	}
+
+	_, err = idex.CompleteBalances("")
+	if err == nil {
+		t.Error("should be an error")
 	}
 }
 
 func TestDepositsWithdrawals(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "depositsWithdrawals.json"})
 
-	idex := New()
-
-	ds, ws, err := idex.DepositsWithdrawals(user, 0, 0)
+	ds, ws, err := idex.DepositsWithdrawals("0x1234567890", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(ds) == 0 {
-		t.Error("there should be at least one deposit")
+	if was, exp := len(ds), 2; was != exp {
+		t.Errorf("there should be %v deposits, was: %v", exp, was)
 	}
-	if len(ws) == 0 {
-		t.Error("there should be at least one withdrawal")
+	if was, exp := len(ws), 2; was != exp {
+		t.Errorf("there should be %v withdrawals, was: %v", exp, was)
 	}
 
-	ds, ws, err = idex.DepositsWithdrawals(user, 1510000000, 1540000000)
+	_, _, err = idex.DepositsWithdrawals("0x1234567890", 1510000000, 1540000000)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
-	}
-	if len(ds) == 0 {
-		t.Error("there should be at least one deposit")
-	}
-	if len(ws) == 0 {
-		t.Error("there should be at least one withdrawal")
 	}
 
 	_, _, err = idex.DepositsWithdrawals("", 0, 0)
@@ -313,29 +328,20 @@ func TestDepositsWithdrawals(t *testing.T) {
 }
 
 func TestOrderTrades(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "orderTrades.json"})
 
-	idex := New()
-
-	// found by searching through ETH_SAN trade histories
-	hash := "0xfb048cab1b72e002b351962927d8f6b3d538f344b71615220d9f8eebde8f735f"
-
-	ts, err := idex.OrderTrades(hash)
+	ts, err := idex.OrderTrades("0x9876543210")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if len(ts) == 0 {
-		t.Error("there should be at least one associated trade")
+	if was, exp := len(ts), 1; was != exp {
+		t.Errorf("there should be %v trades, was: %v", exp, was)
 	}
-
-	ts, err = idex.OrderTrades("0x1234")
-	if err != nil {
-		t.Errorf("should not be an error: %v", err)
+	if was, exp := ts[0].Amount, "74.503174603174603704"; was != exp {
+		t.Errorf("first trade's amount should be %v, was: %v", exp, was)
 	}
-	if len(ts) != 0 {
-		t.Error("there should not be any trades")
+	if was, exp := ts[0].Price, "0.00202"; was != exp {
+		t.Errorf("first trade's price should be %v, was: %v", exp, was)
 	}
 
 	_, err = idex.OrderTrades("")
@@ -346,18 +352,14 @@ func TestOrderTrades(t *testing.T) {
 }
 
 func TestNextNonce(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
+	idex := New(APIMock{Fixture: "nextNonce.json"})
 
-	idex := New()
-
-	n, err := idex.NextNonce(user)
+	n, err := idex.NextNonce("0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
-	if n == 0 {
-		t.Error("nonce should be set")
+	if exp := 2468; n != exp {
+		t.Errorf("nonce should be %v, was: %v", exp, n)
 	}
 
 	_, err = idex.NextNonce("")
@@ -367,11 +369,7 @@ func TestNextNonce(t *testing.T) {
 }
 
 func TestContractAddress(t *testing.T) {
-	if skip {
-		t.Skip()
-	}
-
-	idex := New()
+	idex := New(APIMock{Fixture: "contractAddress.json"})
 
 	a, err := idex.ContractAddress()
 	if err != nil {

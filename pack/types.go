@@ -1,9 +1,5 @@
 package idex
 
-import (
-	"encoding/json"
-)
-
 // Ticker data
 type Ticker struct {
 	Last          string `json:"last"`
@@ -75,7 +71,7 @@ type Trade struct {
 	Maker           string `json:"maker"`
 	Taker           string `json:"taker"`
 	TransactionHash string `json:"transactionHash"`
-	UsdValue        string `json:"usdValue"`
+	USDValue        string `json:"usdValue"`
 }
 
 // Currency holds details about supported currencies
@@ -116,25 +112,82 @@ type Volume struct {
 	TotalETH string
 }
 
-// UnmarshalJSON custom for Volume
-func (v *Volume) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &v.Markets); err != nil {
-		// expecting error on totalETH field having a string value
-		if !UnmarshalErrorOnType(err, "string") {
-			return err
-		}
-	}
-	delete(v.Markets, "totalETH")
+// TradeInserted event
+type TradeInserted struct {
+	ID              int    `json:"id"`
+	Price           string `json:"price"`
+	AmountPrecision string `json:"amountPrecision"`
+	TotalPrecision  string `json:"totalPrecision"`
+	Date            string `json:"date"`
+	Timestamp       int    `json:"timestamp"`
+	SellerFee       string `json:"sellerFee"`
+	BuyerFee        string `json:"buyerFee"`
+	Type            string `json:"type"`
+	TokenBuy        string `json:"tokenBuy"`
+	AmountBuy       string `json:"amountBuy"`
+	TokenSell       string `json:"tokenSell"`
+	AmountSell      string `json:"amountSell"`
+	FeeMake         string `json:"feeMake"`
+	FeeTake         string `json:"feeTake"`
+	GasFee          string `json:"gasFee"`
+	Buy             string `json:"buy"`
+	V               int    `json:"v"`
+	R               string `json:"r"`
+	S               string `json:"s"`
+	User            string `json:"user"`
+	Sell            string `json:"sell"`
+	Hash            string `json:"hash"`
+	Nonce           int    `json:"nonce"`
+	Amount          string `json:"amount"`
+	USDValue        string `json:"usdValue"`
+	GasFeeAdjusted  string `json:"gasFeeAdjusted"`
+	UUID            string `json:"uuid"`
+	UpdatedAt       string `json:"updatedAt"`
+	CreatedAt       string `json:"createdAt"`
+}
 
-	type total struct {
-		TotalETH string `json:"totalETH"`
-	}
-	t := total{}
+// OrderInserted event
+type OrderInserted struct {
+	Complete        bool   `json:"complete"`
+	ID              int    `json:"id"`
+	TokenBuy        string `json:"tokenBuy"`
+	AmountBuy       string `json:"amountBuy"`
+	TokenSell       string `json:"tokenSell"`
+	AmountSell      string `json:"amountSell"`
+	Expires         int    `json:"expires"`
+	Nonce           int    `json:"nonce"`
+	User            string `json:"user"`
+	V               int    `json:"v"`
+	R               string `json:"r"`
+	S               string `json:"s"`
+	Hash            string `json:"hash"`
+	FeeDiscount     string `json:"feeDiscount"`
+	RewardsMultiple string `json:"rewardsMultiple"`
+	UpdatedAt       string `json:"updatedAt"`
+	CreatedAt       string `json:"createdAt"`
+}
 
-	if err := json.Unmarshal(b, &t); err != nil {
-		return err
-	}
-	v.TotalETH = t.TotalETH
+// PushCancel event
+type PushCancel struct {
+	ID        int    `json:"id"`
+	Hash      string `json:"hash"`
+	User      string `json:"user"`
+	V         int    `json:"v"`
+	R         string `json:"r"`
+	S         string `json:"s"`
+	UpdatedAt string `json:"updatedAt"`
+	CreatedAt string `json:"createdAt"`
+}
 
-	return nil
+// Method name of websocket event
+type Method struct {
+	Method string `json:"method"`
+}
+
+// SocketResponse holds messages to pass back from the websocket
+type SocketResponse struct {
+	OrderInserted *OrderInserted
+	TradeInserted *TradeInserted
+	PushCancel    *PushCancel
+	Error         error
 }
