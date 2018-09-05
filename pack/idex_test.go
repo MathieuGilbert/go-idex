@@ -2,13 +2,15 @@ package idex
 
 import (
 	"io/ioutil"
+	"net/http"
 	"testing"
+
+	mockhttp "github.com/karupanerura/go-mock-http-response"
 )
 
-// ClientMock satisfies the Doer interface, including name of fixture file.
+// ClientMock satisfies the Poster interface, including name of fixture file.
 type APIMock struct {
 	Fixture string
-	*API
 }
 
 func (a APIMock) Post(endpoint, payload string) ([]byte, error) {
@@ -21,6 +23,25 @@ func (a APIMock) Post(endpoint, payload string) ([]byte, error) {
 		panic(err)
 	}
 	return b, nil
+}
+
+func mockResponse(statusCode int, headers map[string]string, body []byte) {
+	http.DefaultClient = mockhttp.NewResponseMock(statusCode, headers, body).MakeClient()
+}
+
+// TestPost hits the real API.Post method,
+func TestPost(t *testing.T) {
+	r := "response"
+	mockResponse(http.StatusOK, map[string]string{"Content-Type": "application/json"}, []byte(r))
+
+	api := &API{URL: "https://api.example.com"}
+	resp, err := api.Post("returnTicker", `{"market":"ETH_SAN"}`)
+	if err != nil {
+		t.Error("should not be an error")
+	}
+	if string(resp) != r {
+		t.Error("should get the response")
+	}
 }
 
 func TestNew(t *testing.T) {

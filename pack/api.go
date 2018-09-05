@@ -14,7 +14,7 @@ type API struct {
 
 // Post returns the result of a POST to the endpoint with the payload
 func (a *API) Post(endpoint, payload string) ([]byte, error) {
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", a.URL, endpoint+"kidding"), bytes.NewBuffer([]byte(payload)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", a.URL, endpoint), bytes.NewBuffer([]byte(payload)))
 	if err != nil {
 		return nil, err
 	}
