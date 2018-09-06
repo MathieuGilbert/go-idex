@@ -1,0 +1,32 @@
+{
+    "ETH_DX": {
+        "last": "0.00000124",
+        "high": "0.00000139",
+        "low": "0.00000122",
+        "lowestAsk": "0.0000013",
+        "highestBid": "0.00000121",
+        "percentChange": "-8.13453845",
+        "baseVolume": "11.467531244241221818",
+        "quoteVolume": "9035239.159418182904550619"
+    },
+    "ETH_AUC": {
+        "last": "0.000207186721315823",
+        "high": "0.00022",
+        "low": "0.000207186218031327",
+        "lowestAsk": "0.0002099",
+        "highestBid": "0.000206666",
+        "percentChange": "-5.32799597",
+        "baseVolume": "3.185493048151521275",
+        "quoteVolume": "14877.60020056632276662"
+    },
+    "ETH_PKT": {
+        "last": "0.00045001",
+        "high": "N/A",
+        "low": "N/A",
+        "lowestAsk": "0.00159999994999999",
+        "highestBid": "0.000340410001",
+        "percentChange": "0",
+        "baseVolume": "0",
+        "quoteVolume": "0"
+    }
+}

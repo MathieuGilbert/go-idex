@@ -1,0 +1,21 @@
+{
+    "method":"pushCancel",
+    "payload":[
+       {
+          "id":61807385,
+          "hash":"0xef464f5d2bd68459be5c4f16d6d34e79c9079aa61fc8b27bdfc3efa6541c2a2d",
+          "updatedAt":"2018-08-31T23:21:04.000Z",
+          "createdAt":"2018-08-31T23:21:04.000Z"
+      },
+      {
+         "id":61807386,
+         "hash":"0xff464f5d2bd68459be5c4f16d6d34e79c9079aa61fc8b27bdfc3efa6541c2a2d",
+         "updatedAt":"2018-08-31T23:27:04.000Z",
+         "createdAt":"2018-08-31T23:27:04.000Z"
+      }
+    ],
+    "params":{
+        "channel":"plugin:ipc:server:worker",
+        "pattern":"plugin:ipc:server*"
+    }
+}
