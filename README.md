@@ -15,14 +15,10 @@
   - pushCancels?
 
 
-### Example
+### Websocket Example
 
 ```
-func ConsumeIdex() {
-	// cleanly shutdown on interrupt
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
+func ConsumeIdex(ctx context.Context) {
 	url := "wss://v1.idex.market"
 	s := idex.NewSocket(url)
 	if err := s.Connect(); err != nil {
@@ -30,13 +26,8 @@ func ConsumeIdex() {
 	}
 	defer s.Conn.Close()
 
-	if err := s.Handshake(); err != nil {
-		log.Panic(err)
-	}
-
-	done := make(chan struct{})
 	response := make(chan idex.SocketResponse)
-	go s.Monitor(done, response)
+	go s.Monitor(response)
 
 	for {
 		select {
@@ -52,21 +43,15 @@ func ConsumeIdex() {
 			}
 			if r.Error != nil {
 				fmt.Printf("got an error: %+v\n", r.Error)
-				close(done)
 			}
-		case <-done:
-			return
-		case <-interrupt:
-			fmt.Println("interrupted")
-
+		case <-ctx.Done():
 			err := s.Conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
-				log.Panicf("Error writing close message: %v\n", err)
+				log.Println("Error writing close message:", err)
+				return
 			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
+
+			<-time.After(time.Second)
 			return
 		}
 	}

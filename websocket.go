@@ -31,14 +31,13 @@ func (s *Socket) Connect() error {
 	if err != nil {
 		return err
 	}
-
 	s.Conn = c
 
-	return nil
+	return s.handshake()
 }
 
-// Handshake with server
-func (s *Socket) Handshake() error {
+// Handshake with server to be done immediately after connecting
+func (s *Socket) handshake() error {
 	type Payload struct {
 		Type    string `json:"type"`
 		Version string `json:"version"`
@@ -70,9 +69,7 @@ func (s *Socket) Handshake() error {
 }
 
 // Monitor the websocket for messages
-func (s *Socket) Monitor(done chan struct{}, resp chan SocketResponse) {
-	defer close(done)
-
+func (s *Socket) Monitor(resp chan SocketResponse) {
 	for {
 		sr := SocketResponse{}
 
@@ -107,7 +104,6 @@ func (s *Socket) Monitor(done chan struct{}, resp chan SocketResponse) {
 		default:
 			log.Printf("Other method: %+v\n", string(msg))
 		}
-
 	}
 }
 
