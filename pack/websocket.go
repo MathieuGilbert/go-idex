@@ -70,24 +70,24 @@ func (s *Socket) Handshake() error {
 }
 
 // Monitor the websocket for messages
-func (s *Socket) Monitor(done chan struct{}, response chan SocketResponse) {
+func (s *Socket) Monitor(done chan struct{}, resp chan SocketResponse) {
 	go func() {
 		defer close(done)
 
 		for {
 			sr := SocketResponse{}
 
-			_, message, err := s.Conn.ReadMessage()
+			_, msg, err := s.Conn.ReadMessage()
 			if err != nil {
 				sr.Error = err
-				response <- sr
+				resp <- sr
 				continue
 			}
 
 			m := &Method{}
-			if err := json.Unmarshal(message, m); err != nil {
+			if err := json.Unmarshal(msg, m); err != nil {
 				sr.Error = err
-				response <- sr
+				resp <- sr
 				continue
 			}
 
@@ -95,58 +95,82 @@ func (s *Socket) Monitor(done chan struct{}, response chan SocketResponse) {
 			case "handshake":
 				log.Println("Handshake successful")
 			case "notifyTradesInserted":
-				p := &struct {
-					Payload []*TradeInserted `json:"payload"`
-				}{}
-				if err := json.Unmarshal(message, p); err != nil {
-					sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(message))
-					response <- sr
-				} else {
-					for _, t := range p.Payload {
-						sr.TradeInserted = t
-						response <- sr
-					}
-				}
+				processTradesInserted(msg, resp)
 			case "notifyOrderInserted":
-				p := &struct {
-					Payload *OrderInserted `json:"payload"`
-				}{}
-				if err := json.Unmarshal(message, p); err != nil {
-					sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(message))
-				} else {
-					sr.OrderInserted = p.Payload
-				}
-				response <- sr
+				processOrderInserted(msg, resp)
 			case "pushCancel":
-				p := &struct {
-					Payload *PushCancel `json:"payload"`
-				}{}
-				if err := json.Unmarshal(message, p); err != nil {
-					sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(message))
-				} else {
-					sr.PushCancel = p.Payload
-				}
-				response <- sr
+				processPushCancel(msg, resp)
 			case "pushCancels":
-				p := &struct {
-					Payload []*PushCancel `json:"payload"`
-				}{}
-				if err := json.Unmarshal(message, p); err != nil {
-					sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(message))
-					response <- sr
-				} else {
-					for _, pc := range p.Payload {
-						sr.PushCancel = pc
-						response <- sr
-					}
-				}
+				processPushCancels(msg, resp)
 			case "pushEthPrice":
 			case "pushServerBlock":
 			case "pushRewardPoolSize":
 			default:
-				log.Printf("Other method: %+v\n", string(message))
+				log.Printf("Other method: %+v\n", string(msg))
 			}
 
 		}
 	}()
+}
+
+func processTradesInserted(msg []byte, c chan SocketResponse) {
+	p := &struct {
+		Payload []*TradeInserted `json:"payload"`
+	}{}
+	sr := SocketResponse{}
+
+	if err := json.Unmarshal(msg, p); err != nil {
+		sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(msg))
+		c <- sr
+	} else {
+		for _, t := range p.Payload {
+			sr.TradeInserted = t
+			c <- sr
+		}
+	}
+}
+
+func processOrderInserted(msg []byte, c chan SocketResponse) {
+	p := &struct {
+		Payload *OrderInserted `json:"payload"`
+	}{}
+	sr := SocketResponse{}
+
+	if err := json.Unmarshal(msg, p); err != nil {
+		sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(msg))
+	} else {
+		sr.OrderInserted = p.Payload
+	}
+	c <- sr
+}
+
+func processPushCancel(msg []byte, c chan SocketResponse) {
+	p := &struct {
+		Payload *PushCancel `json:"payload"`
+	}{}
+	sr := SocketResponse{}
+
+	if err := json.Unmarshal(msg, p); err != nil {
+		sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(msg))
+	} else {
+		sr.PushCancel = p.Payload
+	}
+	c <- sr
+}
+
+func processPushCancels(msg []byte, c chan SocketResponse) {
+	p := &struct {
+		Payload []*PushCancel `json:"payload"`
+	}{}
+	sr := SocketResponse{}
+
+	if err := json.Unmarshal(msg, p); err != nil {
+		sr.Error = fmt.Errorf("unmarshal error: %v, for message %v", err, string(msg))
+		c <- sr
+	} else {
+		for _, pc := range p.Payload {
+			sr.PushCancel = pc
+			c <- sr
+		}
+	}
 }

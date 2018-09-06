@@ -1,6 +1,7 @@
 package idex
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -13,16 +14,20 @@ type APIMock struct {
 	Fixture string
 }
 
-func (a APIMock) Post(endpoint, payload string) ([]byte, error) {
-	if a.Fixture == "" {
-		return nil, nil
+func fileBytes(fileName string) ([]byte, error) {
+	if fileName == "" {
+		panic(fmt.Errorf("file name required"))
 	}
 
-	b, err := ioutil.ReadFile("testdata/" + a.Fixture)
+	b, err := ioutil.ReadFile("testdata/" + fileName)
 	if err != nil {
 		panic(err)
 	}
 	return b, nil
+}
+
+func (a APIMock) Post(endpoint, payload string) ([]byte, error) {
+	return fileBytes(a.Fixture)
 }
 
 func mockResponse(statusCode int, headers map[string]string, body []byte) {
@@ -400,4 +405,135 @@ func TestContractAddress(t *testing.T) {
 	if a != "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208" {
 		t.Errorf("address has changed: %v\n", a)
 	}
+}
+
+func TestProcessTradesInserted(t *testing.T) {
+	c := make(chan SocketResponse)
+	b, _ := fileBytes("notifyTradesInserted.json")
+	go processTradesInserted(b, c)
+
+	r := <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.TradeInserted == nil {
+		t.Error("should be a TradeInserted")
+	}
+	if was, exp := r.TradeInserted.Price, "0.000002117466563483"; was != exp {
+		t.Errorf("inserted trade price should be %v, was: %v", exp, was)
+	}
+	if was, exp := r.TradeInserted.V, 27; was != exp {
+		t.Errorf("inserted trade V should be %v, was: %v", exp, was)
+	}
+
+	r = <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.TradeInserted == nil {
+		t.Error("should be a TradeInserted")
+	}
+	if was, exp := r.TradeInserted.Price, "0.000002118000000000"; was != exp {
+		t.Errorf("inserted trade price should be %v, was: %v", exp, was)
+	}
+	// this case tests for when V comes back as a string instead of an int
+	if was, exp := r.TradeInserted.V, 28; was != exp {
+		t.Errorf("inserted trade V should be %v, was: %v", exp, was)
+	}
+}
+
+func TestProcessOrderInserted(t *testing.T) {
+	c := make(chan SocketResponse)
+	b, _ := fileBytes("notifyOrderInserted.json")
+	go processOrderInserted(b, c)
+
+	r := <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.OrderInserted == nil {
+		t.Error("should be an OrderInserted")
+	}
+	if was, exp := r.OrderInserted.TokenSell, "0x3f06b5d78406cd97bdf10f5c420b241d32759c80"; was != exp {
+		t.Errorf("inserted order token sell should be %v, was: %v", exp, was)
+	}
+	if was, exp := r.OrderInserted.V, 27; was != exp {
+		t.Errorf("inserted order V should be %v, was: %v", exp, was)
+	}
+
+	// this file has V as a string
+	b, _ = fileBytes("notifyOrderInserted2.json")
+	go processOrderInserted(b, c)
+
+	r = <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if was, exp := r.OrderInserted.V, 26; was != exp {
+		t.Errorf("inserted order V should be %v, was: %v", exp, was)
+	}
+}
+
+func TestProcessPushCancel(t *testing.T) {
+	c := make(chan SocketResponse)
+	b, _ := fileBytes("notifyPushCancel.json")
+	go processPushCancel(b, c)
+
+	r := <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.PushCancel == nil {
+		t.Error("should be a PushCancel")
+	}
+	if was, exp := r.PushCancel.Hash, "0x216a8e0de8c3fc08279e0fccee5b9da7011312dab4b740288729f4f77497cbaa"; was != exp {
+		t.Errorf("cancel hash should be %v, was: %v", exp, was)
+	}
+	if was, exp := r.PushCancel.V, 28; was != exp {
+		t.Errorf("cancel V should be %v, was: %v", exp, was)
+	}
+
+	// this file has V as a string
+	b, _ = fileBytes("notifyPushCancel2.json")
+	go processPushCancel(b, c)
+
+	r = <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.PushCancel == nil {
+		t.Error("should be a PushCancel")
+	}
+	if was, exp := r.PushCancel.V, 29; was != exp {
+		t.Errorf("cancel V should be %v, was: %v", exp, was)
+	}
+}
+
+func TestProcessPushCancels(t *testing.T) {
+	c := make(chan SocketResponse)
+	b, _ := fileBytes("notifyPushCancels.json")
+	go processPushCancels(b, c)
+
+	r := <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.PushCancel == nil {
+		t.Error("should be a PushCancel")
+	}
+	if was, exp := r.PushCancel.Hash, "0xef464f5d2bd68459be5c4f16d6d34e79c9079aa61fc8b27bdfc3efa6541c2a2d"; was != exp {
+		t.Errorf("cancel hash should be %v, was: %v", exp, was)
+	}
+
+	r = <-c
+	if r.Error != nil {
+		t.Errorf("should not be an error: %v", r.Error)
+	}
+	if r.PushCancel == nil {
+		t.Error("should be a PushCancel")
+	}
+	if was, exp := r.PushCancel.Hash, "0xff464f5d2bd68459be5c4f16d6d34e79c9079aa61fc8b27bdfc3efa6541c2a2d"; was != exp {
+		t.Errorf("cancel hash should be %v, was: %v", exp, was)
+	}
+
 }

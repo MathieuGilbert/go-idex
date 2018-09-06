@@ -1,0 +1,26 @@
+{
+   "method":"notifyOrderInserted",
+   "payload":{
+      "complete":false,
+      "id":60086032,
+      "tokenBuy":"0x0000000000000000000000000000000000000000",
+      "amountBuy":"1978850017439473664",
+      "tokenSell":"0x3f06b5d78406cd97bdf10f5c420b241d32759c80",
+      "amountSell":"20764437238000000406913024",
+      "expires":10000,
+      "nonce":11535753452,
+      "user":"0xc362530e8d22f4933a96060b234e7ae289af0abd",
+      "v":"26",
+      "r":"0x0d90c9733669a45f04f3071d9fa7bb9cc4f01b4d7cc749123fcd80223324a4ec",
+      "s":"0x7448393476fb2d059387c5107a0f6787fc64bccf0cecdbd4e23ebd511ae561ea",
+      "hash":"0xfdfa7633a20045bd5ffe57de0a0f3ec42c3ec3983549e387973aeaeebc210d42",
+      "feeDiscount":"0",
+      "rewardsMultiple":"100",
+      "updatedAt":"2018-08-31T22:10:53.000Z",
+      "createdAt":"2018-08-31T22:10:53.000Z"
+   },
+   "params":{
+      "channel":"plugin:ipc:server:worker",
+      "pattern":"plugin:ipc:server*"
+   }
+}

@@ -2,8 +2,6 @@ package idex
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"strconv"
 )
 
@@ -14,8 +12,6 @@ func UnmarshalErrorOnType(err error, t string) bool {
 		if e.Value == t {
 			return true
 		}
-	case *json.UnmarshalFieldError:
-		log.Printf("json.UnmarshalFieldError: %+v\n", e)
 	}
 	return false
 }
@@ -45,77 +41,111 @@ func (v *Volume) UnmarshalJSON(b []byte) error {
 
 // UnmarshalJSON custom for TradeInserted to handle V as string or int
 func (ti *TradeInserted) UnmarshalJSON(b []byte) error {
+	// prevent infinite loop
 	type Alias TradeInserted
-	aux := &struct {
-		V string `json:"v"`
-		*Alias
-	}{
-		Alias: (*Alias)(ti),
-	}
+	a := Alias{}
 
-	if err := json.Unmarshal(b, aux); err != nil {
-		if !UnmarshalErrorOnType(err, "int") && !UnmarshalErrorOnType(err, "string") {
+	if err := json.Unmarshal(b, &a); err != nil {
+		if UnmarshalErrorOnType(err, "string") {
+			// auxiliary struct to wrap problem field
+			aux := &struct {
+				V string `json:"v"`
+				*Alias
+			}{
+				Alias: (*Alias)(ti),
+			}
+
+			if err = json.Unmarshal(b, aux); err != nil {
+				return err
+			}
+
+			// turn it back into an int
+			i, err := strconv.Atoi(aux.V)
+			if err != nil {
+				return err
+			}
+			a.V = i
+		} else {
 			return err
 		}
 	}
 
-	// update int value if string value was set
-	if i, err := strconv.Atoi(aux.V); err == nil {
-		ti.V = i
-	}
+	// reassign alias type
+	*ti = TradeInserted(a)
 
 	return nil
 }
 
 // UnmarshalJSON custom for OrderInserted to handle V as string or int
-func (ti *OrderInserted) UnmarshalJSON(b []byte) error {
+func (oi *OrderInserted) UnmarshalJSON(b []byte) error {
+	// prevent infinite loop
 	type Alias OrderInserted
-	aux := &struct {
-		V string `json:"v"`
-		*Alias
-	}{
-		Alias: (*Alias)(ti),
-	}
+	a := Alias{}
 
-	if err := json.Unmarshal(b, aux); err != nil {
-		if !UnmarshalErrorOnType(err, "int") && !UnmarshalErrorOnType(err, "string") {
+	if err := json.Unmarshal(b, &a); err != nil {
+		if UnmarshalErrorOnType(err, "string") {
+			// auxiliary struct to wrap problem field
+			aux := &struct {
+				V string `json:"v"`
+				*Alias
+			}{
+				Alias: (*Alias)(oi),
+			}
+
+			if err = json.Unmarshal(b, aux); err != nil {
+				return err
+			}
+
+			// turn it back into an int
+			i, err := strconv.Atoi(aux.V)
+			if err != nil {
+				return err
+			}
+			a.V = i
+		} else {
 			return err
 		}
 	}
 
-	// update int value if string value was set
-	if i, err := strconv.Atoi(aux.V); err == nil {
-		ti.V = i
-	}
+	// reassign alias type
+	*oi = OrderInserted(a)
 
 	return nil
 }
 
 // UnmarshalJSON custom for PushCancel to handle V as string or int
-func (ti *PushCancel) UnmarshalJSON(b []byte) error {
+func (pc *PushCancel) UnmarshalJSON(b []byte) error {
+	// prevent infinite loop
 	type Alias PushCancel
-	aux := &struct {
-		V string `json:"v"`
-		*Alias
-	}{
-		Alias: (*Alias)(ti),
-	}
+	a := Alias{}
 
-	if err := json.Unmarshal(b, aux); err != nil {
-		i := UnmarshalErrorOnType(err, "int")
-		fmt.Println(i)
-		s := UnmarshalErrorOnType(err, "string")
-		fmt.Println(s)
-		if !i && !s {
-			fmt.Println("huh? why still in here?")
+	if err := json.Unmarshal(b, &a); err != nil {
+		if UnmarshalErrorOnType(err, "string") {
+			// auxiliary struct to wrap problem field
+			aux := &struct {
+				V string `json:"v"`
+				*Alias
+			}{
+				Alias: (*Alias)(pc),
+			}
+
+			if err = json.Unmarshal(b, aux); err != nil {
+				return err
+			}
+
+			// turn it back into an int
+			i, err := strconv.Atoi(aux.V)
+			if err != nil {
+				return err
+			}
+			a.V = i
+		} else {
 			return err
 		}
 	}
 
-	// update int value if string value was set
-	if i, err := strconv.Atoi(aux.V); err == nil {
-		ti.V = i
-	}
+	// reassign alias type
+	*pc = PushCancel(a)
 
 	return nil
 }
