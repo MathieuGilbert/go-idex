@@ -15,19 +15,29 @@
   - pushCancels?
 
 
+### REST Example
+
+```
+func Ticker(mkt string) {
+    i := idex.New()
+	t, _ := i.API.Ticker("ETH_AUC")
+    fmt.Printf("ticker: %+v\n", t)
+}
+
+```
+
 ### Websocket Example
 
 ```
 func ConsumeIdex(ctx context.Context) {
-	url := "wss://v1.idex.market"
-	s := idex.NewSocket(url)
-	if err := s.Connect(); err != nil {
+	i := idex.New()
+	if err := i.Socket.Connect(); err != nil {
 		log.Panic(err)
 	}
-	defer s.Conn.Close()
+	defer i.Socket.Conn.Close()
 
 	response := make(chan idex.SocketResponse)
-	go s.Monitor(response)
+	go i.Socket.Monitor(response)
 
 	for {
 		select {
@@ -45,7 +55,7 @@ func ConsumeIdex(ctx context.Context) {
 				fmt.Printf("got an error: %+v\n", r.Error)
 			}
 		case <-ctx.Done():
-			err := s.Conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			err := i.Socket.Conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
 				log.Println("Error writing close message:", err)
 				return

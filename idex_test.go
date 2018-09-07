@@ -9,12 +9,7 @@ import (
 	mockhttp "github.com/karupanerura/go-mock-http-response"
 )
 
-// ClientMock satisfies the Poster interface, including name of fixture file.
-type APIMock struct {
-	Fixture string
-}
-
-func fileBytes(fileName string) ([]byte, error) {
+func fileBytes(fileName string) []byte {
 	if fileName == "" {
 		panic(fmt.Errorf("file name required"))
 	}
@@ -23,43 +18,29 @@ func fileBytes(fileName string) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
-	return b, nil
+	return b
 }
 
-func (a APIMock) Post(endpoint, payload string) ([]byte, error) {
-	return fileBytes(a.Fixture)
-}
-
-func mockResponse(statusCode int, headers map[string]string, body []byte) {
-	http.DefaultClient = mockhttp.NewResponseMock(statusCode, headers, body).MakeClient()
-}
-
-// TestPost hits the real API.Post method,
-func TestPost(t *testing.T) {
-	r := "response"
-	mockResponse(http.StatusOK, map[string]string{"Content-Type": "application/json"}, []byte(r))
-
-	api := &API{URL: "https://api.example.com"}
-	resp, err := api.Post("returnTicker", `{"market":"ETH_SAN"}`)
-	if err != nil {
-		t.Error("should not be an error")
-	}
-	if string(resp) != r {
-		t.Error("should get the response")
-	}
+func mockResponse(statusCode int, body []byte) {
+	h := map[string]string{"Content-Type": "application/json"}
+	http.DefaultClient = mockhttp.NewResponseMock(statusCode, h, body).MakeClient()
 }
 
 func TestNew(t *testing.T) {
-	idex := New(APIMock{Fixture: ""})
-	if idex == nil {
-		t.Error("idex should be created")
+	idex := New()
+	if idex.API == nil {
+		t.Error("idex should have an API")
+	}
+	if idex.Socket == nil {
+		t.Error("idex should have a Socket")
 	}
 }
 
 func TestTicker(t *testing.T) {
-	idex := New(APIMock{Fixture: "ticker.json"})
+	mockResponse(http.StatusOK, fileBytes("ticker.json"))
+	idex := New()
 
-	tk, err := idex.Ticker("ETH_AUC")
+	tk, err := idex.API.Ticker("ETH_AUC")
 	if err != nil {
 		t.Errorf("should not be an error: %v\n", err)
 	}
@@ -72,14 +53,15 @@ func TestTicker(t *testing.T) {
 }
 
 func TestTickerBadMarket(t *testing.T) {
-	idex := New(APIMock{Fixture: "empty.json"})
+	mockResponse(http.StatusOK, fileBytes("empty.json"))
+	idex := New()
 
-	_, err := idex.Ticker("INVALID")
+	_, err := idex.API.Ticker("INVALID")
 	if err == nil {
 		t.Error("should be an error")
 	}
 
-	_, err = idex.Ticker("")
+	_, err = idex.API.Ticker("")
 	if err == nil {
 		t.Error("should be an error")
 	}
@@ -87,9 +69,10 @@ func TestTickerBadMarket(t *testing.T) {
 }
 
 func TestTickers(t *testing.T) {
-	idex := New(APIMock{Fixture: "tickers.json"})
+	mockResponse(http.StatusOK, fileBytes("tickers.json"))
+	idex := New()
 
-	tks, err := idex.Tickers()
+	tks, err := idex.API.Tickers()
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -108,9 +91,10 @@ func TestTickers(t *testing.T) {
 }
 
 func TestVolume24(t *testing.T) {
-	idex := New(APIMock{Fixture: "volume24.json"})
+	mockResponse(http.StatusOK, fileBytes("volume24.json"))
+	idex := New()
 
-	vol, err := idex.Volume24()
+	vol, err := idex.API.Volume24()
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -129,9 +113,10 @@ func TestVolume24(t *testing.T) {
 }
 
 func TestReturnOrderBook(t *testing.T) {
-	idex := New(APIMock{Fixture: "orderBook.json"})
+	mockResponse(http.StatusOK, fileBytes("orderBook.json"))
+	idex := New()
 
-	ob, err := idex.OrderBook("ETH_SAN")
+	ob, err := idex.API.OrderBook("ETH_SAN")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -156,9 +141,10 @@ func TestReturnOrderBook(t *testing.T) {
 }
 
 func TestOpenOrdersMarket(t *testing.T) {
-	idex := New(APIMock{Fixture: "openOrdersMarket.json"})
+	mockResponse(http.StatusOK, fileBytes("openOrdersMarket.json"))
+	idex := New()
 
-	os, err := idex.OpenOrders("ETH_SAN", "")
+	os, err := idex.API.OpenOrders("ETH_SAN", "")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -174,9 +160,10 @@ func TestOpenOrdersMarket(t *testing.T) {
 }
 
 func TestOpenOrdersUser(t *testing.T) {
-	idex := New(APIMock{Fixture: "openOrdersUser.json"})
+	mockResponse(http.StatusOK, fileBytes("openOrdersUser.json"))
+	idex := New()
 
-	os, err := idex.OpenOrders("", "0x1234567890")
+	os, err := idex.API.OpenOrders("", "0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -190,16 +177,17 @@ func TestOpenOrdersUser(t *testing.T) {
 		t.Errorf("first open order market should be %v, was: %v", exp, was)
 	}
 
-	_, err = idex.OpenOrders("", "")
+	_, err = idex.API.OpenOrders("", "")
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestTradeHistoryMarket(t *testing.T) {
-	idex := New(APIMock{Fixture: "tradeHistoryMarket.json"})
+	mockResponse(http.StatusOK, fileBytes("tradeHistoryMarket.json"))
+	idex := New()
 
-	ts, err := idex.TradeHistoryMarket("ETH_SAN", "", 0, 0)
+	ts, err := idex.API.TradeHistoryMarket("ETH_SAN", "", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -213,7 +201,7 @@ func TestTradeHistoryMarket(t *testing.T) {
 		t.Errorf("second trade history total should be %v, was: %v", exp, was)
 	}
 
-	ts, err = idex.TradeHistoryMarket("ETH_SAN", "0x1234567890", 0, 0)
+	ts, err = idex.API.TradeHistoryMarket("ETH_SAN", "0x1234567890", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -221,7 +209,7 @@ func TestTradeHistoryMarket(t *testing.T) {
 		t.Error("there should be at least one trade")
 	}
 
-	ts, err = idex.TradeHistoryMarket("ETH_SAN", "", 1531000000, 1532000000)
+	ts, err = idex.API.TradeHistoryMarket("ETH_SAN", "", 1531000000, 1532000000)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -229,16 +217,17 @@ func TestTradeHistoryMarket(t *testing.T) {
 		t.Error("there should be at least one trade")
 	}
 
-	_, err = idex.TradeHistoryMarket("", "", 0, 0)
+	_, err = idex.API.TradeHistoryMarket("", "", 0, 0)
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestTradeHistoryUser(t *testing.T) {
-	idex := New(APIMock{Fixture: "tradeHistoryUser.json"})
+	mockResponse(http.StatusOK, fileBytes("tradeHistoryUser.json"))
+	idex := New()
 
-	ts, err := idex.TradeHistoryUser("0x1234567890", 0, 0)
+	ts, err := idex.API.TradeHistoryUser("0x1234567890", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -255,16 +244,17 @@ func TestTradeHistoryUser(t *testing.T) {
 		t.Errorf("first trade history usdValue should be %v, was: %v", exp, was)
 	}
 
-	_, err = idex.TradeHistoryUser("", 0, 0)
+	_, err = idex.API.TradeHistoryUser("", 0, 0)
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestCurrencies(t *testing.T) {
-	idex := New(APIMock{Fixture: "currencies.json"})
+	mockResponse(http.StatusOK, fileBytes("currencies.json"))
+	idex := New()
 
-	cs, err := idex.Currencies()
+	cs, err := idex.API.Currencies()
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -280,9 +270,10 @@ func TestCurrencies(t *testing.T) {
 }
 
 func TestBalances(t *testing.T) {
-	idex := New(APIMock{Fixture: "balances.json"})
+	mockResponse(http.StatusOK, fileBytes("balances.json"))
+	idex := New()
 
-	bs, err := idex.Balances("0x1234567890")
+	bs, err := idex.API.Balances("0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -296,16 +287,17 @@ func TestBalances(t *testing.T) {
 		t.Errorf("NPXS balance should be %v, was: %v", exp, was)
 	}
 
-	_, err = idex.Balances("")
+	_, err = idex.API.Balances("")
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestCompleteBalances(t *testing.T) {
-	idex := New(APIMock{Fixture: "completeBalances.json"})
+	mockResponse(http.StatusOK, fileBytes("completeBalances.json"))
+	idex := New()
 
-	bs, err := idex.CompleteBalances("0x1234567890")
+	bs, err := idex.API.CompleteBalances("0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -322,16 +314,17 @@ func TestCompleteBalances(t *testing.T) {
 		t.Errorf("ETH on order balance should be %v, was: %v", exp, was)
 	}
 
-	_, err = idex.CompleteBalances("")
+	_, err = idex.API.CompleteBalances("")
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestDepositsWithdrawals(t *testing.T) {
-	idex := New(APIMock{Fixture: "depositsWithdrawals.json"})
+	mockResponse(http.StatusOK, fileBytes("depositsWithdrawals.json"))
+	idex := New()
 
-	ds, ws, err := idex.DepositsWithdrawals("0x1234567890", 0, 0)
+	ds, ws, err := idex.API.DepositsWithdrawals("0x1234567890", 0, 0)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -342,21 +335,22 @@ func TestDepositsWithdrawals(t *testing.T) {
 		t.Errorf("there should be %v withdrawals, was: %v", exp, was)
 	}
 
-	_, _, err = idex.DepositsWithdrawals("0x1234567890", 1510000000, 1540000000)
+	_, _, err = idex.API.DepositsWithdrawals("0x1234567890", 1510000000, 1540000000)
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
 
-	_, _, err = idex.DepositsWithdrawals("", 0, 0)
+	_, _, err = idex.API.DepositsWithdrawals("", 0, 0)
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestOrderTrades(t *testing.T) {
-	idex := New(APIMock{Fixture: "orderTrades.json"})
+	mockResponse(http.StatusOK, fileBytes("orderTrades.json"))
+	idex := New()
 
-	ts, err := idex.OrderTrades("0x9876543210")
+	ts, err := idex.API.OrderTrades("0x9876543210")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -370,7 +364,7 @@ func TestOrderTrades(t *testing.T) {
 		t.Errorf("first trade's price should be %v, was: %v", exp, was)
 	}
 
-	_, err = idex.OrderTrades("")
+	_, err = idex.API.OrderTrades("")
 	if err == nil {
 		t.Error("should be an error")
 	}
@@ -378,9 +372,10 @@ func TestOrderTrades(t *testing.T) {
 }
 
 func TestNextNonce(t *testing.T) {
-	idex := New(APIMock{Fixture: "nextNonce.json"})
+	mockResponse(http.StatusOK, fileBytes("nextNonce.json"))
+	idex := New()
 
-	n, err := idex.NextNonce("0x1234567890")
+	n, err := idex.API.NextNonce("0x1234567890")
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -388,16 +383,17 @@ func TestNextNonce(t *testing.T) {
 		t.Errorf("nonce should be %v, was: %v", exp, n)
 	}
 
-	_, err = idex.NextNonce("")
+	_, err = idex.API.NextNonce("")
 	if err == nil {
 		t.Error("should be an error")
 	}
 }
 
 func TestContractAddress(t *testing.T) {
-	idex := New(APIMock{Fixture: "contractAddress.json"})
+	mockResponse(http.StatusOK, fileBytes("contractAddress.json"))
+	idex := New()
 
-	a, err := idex.ContractAddress()
+	a, err := idex.API.ContractAddress()
 	if err != nil {
 		t.Errorf("should not be an error: %v", err)
 	}
@@ -409,8 +405,7 @@ func TestContractAddress(t *testing.T) {
 
 func TestProcessTradesInserted(t *testing.T) {
 	c := make(chan SocketResponse)
-	b, _ := fileBytes("notifyTradesInserted.json")
-	go processTradesInserted(b, c)
+	go processTradesInserted(fileBytes("notifyTradesInserted.json"), c)
 
 	r := <-c
 	if r.Error != nil {
@@ -444,8 +439,7 @@ func TestProcessTradesInserted(t *testing.T) {
 
 func TestProcessOrderInserted(t *testing.T) {
 	c := make(chan SocketResponse)
-	b, _ := fileBytes("notifyOrderInserted.json")
-	go processOrderInserted(b, c)
+	go processOrderInserted(fileBytes("notifyOrderInserted.json"), c)
 
 	r := <-c
 	if r.Error != nil {
@@ -462,8 +456,7 @@ func TestProcessOrderInserted(t *testing.T) {
 	}
 
 	// this file has V as a string
-	b, _ = fileBytes("notifyOrderInserted2.json")
-	go processOrderInserted(b, c)
+	go processOrderInserted(fileBytes("notifyOrderInserted2.json"), c)
 
 	r = <-c
 	if r.Error != nil {
@@ -476,8 +469,7 @@ func TestProcessOrderInserted(t *testing.T) {
 
 func TestProcessPushCancel(t *testing.T) {
 	c := make(chan SocketResponse)
-	b, _ := fileBytes("notifyPushCancel.json")
-	go processPushCancel(b, c)
+	go processPushCancel(fileBytes("notifyPushCancel.json"), c)
 
 	r := <-c
 	if r.Error != nil {
@@ -494,8 +486,7 @@ func TestProcessPushCancel(t *testing.T) {
 	}
 
 	// this file has V as a string
-	b, _ = fileBytes("notifyPushCancel2.json")
-	go processPushCancel(b, c)
+	go processPushCancel(fileBytes("notifyPushCancel2.json"), c)
 
 	r = <-c
 	if r.Error != nil {
@@ -511,8 +502,7 @@ func TestProcessPushCancel(t *testing.T) {
 
 func TestProcessPushCancels(t *testing.T) {
 	c := make(chan SocketResponse)
-	b, _ := fileBytes("notifyPushCancels.json")
-	go processPushCancels(b, c)
+	go processPushCancels(fileBytes("notifyPushCancels.json"), c)
 
 	r := <-c
 	if r.Error != nil {

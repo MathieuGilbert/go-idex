@@ -15,11 +15,6 @@ type Socket struct {
 	URL  string
 }
 
-// NewSocket returns a new Socket
-func NewSocket(url string) *Socket {
-	return &Socket{URL: url}
-}
-
 // Connect to websocket
 func (s *Socket) Connect() error {
 	c, resp, err := websocket.DefaultDialer.Dial(s.URL, nil)
@@ -33,11 +28,11 @@ func (s *Socket) Connect() error {
 	}
 	s.Conn = c
 
-	return s.handshake()
+	return handshake(s)
 }
 
 // Handshake with server to be done immediately after connecting
-func (s *Socket) handshake() error {
+func handshake(s *Socket) error {
 	type Payload struct {
 		Type    string `json:"type"`
 		Version string `json:"version"`
