@@ -15,7 +15,7 @@ https://github.com/AuroraDAO/idex-api-docs
 ```
 func Ticker(mkt string) {
     i := idex.New()
-	t, _ := i.API.Ticker("ETH_AUC")
+    t, _ := i.API.Ticker("ETH_AUC")
     fmt.Printf("ticker: %+v\n", t)
 }
 
