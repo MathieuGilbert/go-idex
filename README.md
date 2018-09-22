@@ -1,4 +1,4 @@
-### TODO
+## TODO
 
   - Contract-backed trade functions:
     - order
@@ -6,8 +6,11 @@
     - cancel
     - withdraw
 
+## API Docs
 
-### REST Example
+https://github.com/AuroraDAO/idex-api-docs
+
+## REST Example
 
 ```
 func Ticker(mkt string) {
@@ -18,7 +21,7 @@ func Ticker(mkt string) {
 
 ```
 
-### Websocket Example
+## Websocket Example
 
 ```
 func ConsumeIdex(ctx context.Context) {
