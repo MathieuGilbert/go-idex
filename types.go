@@ -12,7 +12,13 @@ type Ticker struct {
 	QuoteVolume   string `json:"quoteVolume"`
 }
 
-// Order in orderbook
+// OrderBook holds bid and ask orders for a market
+type OrderBook struct {
+	Bids []Order `json:"bids"`
+	Asks []Order `json:"asks"`
+}
+
+// Order held in OrderBook
 type Order struct {
 	Price     string  `json:"price"`
 	Amount    string  `json:"amount"`
@@ -21,16 +27,16 @@ type Order struct {
 	Params    *Params `json:"params"`
 }
 
-// OpenOrder in orderbook
+// OpenOrder for a market or user
 type OpenOrder struct {
 	Timestamp   int     `json:"timestamp"`
+	Price       string  `json:"price"`
+	Amount      string  `json:"amount"`
+	Total       string  `json:"total"`
 	OrderHash   string  `json:"orderHash"`
 	Market      string  `json:"market"`
 	Type        string  `json:"type"`
 	OrderNumber int     `json:"orderNumber"`
-	Price       string  `json:"price"`
-	Amount      string  `json:"amount"`
-	Total       string  `json:"total"`
 	Params      *Params `json:"params"`
 }
 
@@ -47,12 +53,6 @@ type Params struct {
 	Expires       int    `json:"expires"`
 	Nonce         int    `json:"nonce"`
 	User          string `json:"user"`
-}
-
-// OrderBook holds bid and ask orders
-type OrderBook struct {
-	Bids []Order `json:"bids"`
-	Asks []Order `json:"asks"`
 }
 
 // Trade holds details about a trade
