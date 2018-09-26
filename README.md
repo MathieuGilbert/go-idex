@@ -62,3 +62,7 @@ func ConsumeIdex(ctx context.Context) {
 	}
 }
 ```
+
+## License
+
+MIT
