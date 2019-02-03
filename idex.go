@@ -9,7 +9,7 @@ type Idex struct {
 // IDEX rest and websocket urls
 const (
 	APIURL = "https://api.idex.market"
-	WSURL  = "wss://v1.idex.market"
+	WSURL  = "wss://wss.idex.market"
 )
 
 // New instance of an Idex
